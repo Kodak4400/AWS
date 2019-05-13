@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+    s3-portfolio-image-change
+
+    Sample SAM Template for s3-portfolio-image-change
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+    Function:
+        Timeout: 10
+
+Parameters:
+  AWS_S3_BUKET_NAME:
+    Type: String
+    Default: 'test-bucket'
+
+  AWS_S3_OBJECT_NAME:
+    Type: String
+    Default: 'info.json'
+
+Resources:
+
+    S3PortfolioImageChange:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            CodeUri: change_function/
+            Handler: app.lambda_handler
+            Runtime: python3.7
+            Environment: 
+                Variables:
+                    AWS_S3_BUKET_NAME: !Ref AWS_S3_BUKET_NAME
+                    AWS_S3_OBJECT_NAME: !Ref AWS_S3_OBJECT_NAME
+
+
+Outputs:
+    S3PortfolioImageChange:
+      Description: "S3 Portfolio Image Change Lambda Function ARN"
+      Value: !GetAtt S3PortfolioImageChange.Arn
