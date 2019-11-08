@@ -1,0 +1,73 @@
+## テンプレート内容 ##
+# S3Bucket、CloudTrailを新規作成し、全リージョンの証跡をBucketに格納する。
+# 
+## テンプレートチェックとデプロイ(コマンド例) ##
+# aws cloudformation validate-template --template-body file://cloudtrail-storage-s3.yaml --profile default
+# aws cloudformation deploy --template-file cloudtrail-storage-s3.yaml --stack-name cloudtrail-storage-s3 --region ap-northeast-1
+#
+AWSTemplateFormatVersion: 2010-09-09
+Description: "cloudtrail storage s3"
+
+Parameters:
+
+  CloudTrailName:
+    Type: String
+    Default: aws.xxx.co.jp
+  BucketName:
+    Type: String
+    Default: test3.bucket.fork.co.jp
+
+Resources:
+
+  CreateS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      AccessControl: Private
+      BucketName: !Ref BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      LifecycleConfiguration:
+        Rules:
+          -
+            Id: LifeCycleRule
+            Status: Enabled
+            ExpirationInDays: '365'
+
+  CreateS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      PolicyDocument:
+        Id: CloudTrailPolicy
+        Version: '2012-10-17'
+        Statement:
+          -
+            Sid: AWSCloudTrailAclCheck
+            Action:
+              - s3:GetBucketAcl
+            Effect: Allow
+            Resource: !Sub "arn:aws:s3:::${BucketName}"
+            Principal: 
+              Service: "cloudtrail.amazonaws.com"
+          -
+            Sid: AWSCloudTrailWrite
+            Action:
+              - s3:PutObject
+            Effect: Allow
+            Resource: !Sub "arn:aws:s3:::${BucketName}/*"
+            Principal:
+              Service: "cloudtrail.amazonaws.com"
+      Bucket: !Ref CreateS3Bucket
+
+  EnableCloudTrail:
+    DependsOn: CreateS3BucketPolicy
+    Type: AWS::CloudTrail::Trail
+    Properties:
+      EnableLogFileValidation: true
+      IncludeGlobalServiceEvents: true 
+      IsLogging: true
+      IsMultiRegionTrail: true
+      S3BucketName: !Ref CreateS3Bucket
+      TrailName: !Ref CloudTrailName

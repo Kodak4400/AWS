@@ -1,0 +1,54 @@
+## テンプレート内容 ##
+# S3Bucket内の特定のディレクトリにあるオブジェクトしかアクセスできないIAM Groupを新規作成する。
+# （S3のBucketに対してCyberDuck等でのアクセスを制限する等で使用する。）
+# 
+# - xxxxxx     : Bucket名
+# - hoge/fuga/ : 特定のディレクトリ名
+#
+## テンプレートチェックとデプロイ(コマンド例) ##
+# aws cloudformation validate-template --template-body file://iam-group-s3-directory-access.yaml --profile default
+# aws cloudformation deploy --template-file iam-group-s3-directory-access.yaml --stack-name s3-directory-access-stack --region ap-northeast-1 --capabilities CAPABILITY_NAMED_IAM
+#
+AWSTemplateFormatVersion: 2010-09-09
+Description: "iam create group s3 directory access"
+
+Parameters:
+  IAMGroupName:
+    Type: String
+    Default: S3DirectoryAccessGroup
+  IAMPolicyName:
+    Type: String
+    Default: S3DirectoryAccessPolicy
+
+Resources:
+
+  iamGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: !Ref IAMGroupName
+
+  iamPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Ref IAMPolicyName
+      Groups:
+       - !Ref iamGroup
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "s3:GetBucketLocation"
+              - "s3:ListBucket"
+            Resource: "arn:aws:s3:::xxxxxx"
+            Condition:
+              StringLike:
+                s3:prefix: "hoge/fuga/*"
+          -
+            Effect: "Allow"
+            Action:
+              - "s3:DeleteObject"
+              - "s3:GetObject"
+              - "s3:PutObject"
+            Resource: "arn:aws:s3:::xxxxxx/hoge/fuga/*"

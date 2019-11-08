@@ -1,0 +1,74 @@
+## テンプレート内容 ##
+# S3Bucketの作成（テスト用）
+# 
+## テンプレートチェックとデプロイ(コマンド例) ##
+# aws cloudformation validate-template --template-body file://s3-test.yaml --profile default
+# aws cloudformation deploy --template-file s3-test.yaml --stack-name s3-test --region ap-northeast-1
+#
+AWSTemplateFormatVersion: 2010-09-09
+Description: "s3 test"
+
+Parameters:
+
+  BucketName:
+    Type: String
+    Default: test3.bucket.fork.co.jp
+
+Resources:
+
+  CreateS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      AccessControl: Private
+      BucketName: !Ref BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration: 
+        IndexDocument: index.html
+        ErrorDocument: /error/404.html
+
+  CreateS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      PolicyDocument:
+        Id: CloudTrailPolicy
+        Version: '2012-10-17'
+        Statement:
+          -
+            Sid: AWSCloudTrailAclCheck
+            Action:
+              - s3:GetBucketAcl
+            Effect: Allow
+            Resource: !Sub "arn:aws:s3:::${BucketName}"
+            Principal: 
+              Service: "cloudtrail.amazonaws.com"
+          -
+            Sid: AWSCloudTrailWrite
+            Action:
+              - s3:PutObject
+            Effect: Allow
+            Resource: !Sub "arn:aws:s3:::${BucketName}/*"
+            Principal:
+              Service: "cloudtrail.amazonaws.com"
+      Bucket: !Ref CreateS3Bucket
+
+Outputs:
+
+  S3BucketURL:
+    Description: create s3 bucket url
+    Value:
+      !Join
+        - ''
+        - - 'https://'
+          - !GetAtt CreateS3Bucket.DomainName
+    Export:
+      Name: !Sub "${AWS::StackName}-URL"
+
+  S3BucketDomainName:
+    Description: create s3 bucket url
+    Value: !GetAtt CreateS3Bucket.DomainName
+    Export:
+      Name: !Sub "${AWS::StackName}-DomainName"

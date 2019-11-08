@@ -1,0 +1,78 @@
+## テンプレート内容 ##
+# お試しで作成したCloudFrontのテンプレート。（証明書の設定は未設定）
+# 
+# Import:
+#  - S3Bucketを作成するStackから、DomainName,BucketNameをExportしてもらう。
+#  - 証明書もExportしてもらう必要あり。(未設定)
+#
+## テンプレートチェックとデプロイ(コマンド例) ##
+# aws cloudformation validate-template --template-body file://cloudfront-origin-s3.yaml --profile default
+# aws cloudformation deploy --template-file cloudfront-origin-s3.yaml --stack-name cloudfront-origin-s3 --region ap-northeast-1
+#
+AWSTemplateFormatVersion: 2010-09-09
+Description: "cloudfront origin s3"
+
+Parameters:
+
+  S3BucketStackName:
+    Type: String
+    Default: s3-test
+
+Resources:
+
+  CreateCloudfrontOAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig: 
+        Comment:
+          !Join
+            - ''
+            - - 'access-identity-'
+              - Fn::ImportValue: !Sub "${S3BucketStackName}-BucketName"
+
+  CreateCloudfront:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig: 
+        Comment: Sample CDN
+        DefaultCacheBehavior:
+          AllowedMethods: ["HEAD", "GET"]
+          Compress: false
+          DefaultTTL: 3600
+          CachedMethods: ["HEAD", "GET"]
+          ForwardedValues:
+              Cookies: 
+                Forward: none
+              QueryString: false
+          MaxTTL: 3600
+          MinTTL: 0
+          SmoothStreaming: false
+          TargetOriginId:
+            !Join
+              - ''
+              - - 'S3origin-'
+                - Fn::ImportValue: !Sub "${S3BucketStackName}-BucketName"
+          ViewerProtocolPolicy: redirect-to-https
+        DefaultRootObject: index.html
+        Enabled: false
+        HttpVersion: http2
+        IPV6Enabled: false
+        Origins:
+          - 
+            DomainName: 
+              Fn::ImportValue: !Sub "${S3BucketStackName}-DomainName"
+            Id:
+              !Join
+                - ''
+                - - 'S3origin-'
+                  - Fn::ImportValue: !Sub "${S3BucketStackName}-BucketName"
+            S3OriginConfig: 
+              OriginAccessIdentity:
+                !Sub "origin-access-identity/cloudfront/${CreateCloudfrontOAI}"
+        PriceClass: PriceClass_100
+#        ViewerCertificate:
+#          AcmCertificateArn: String
+#          CloudFrontDefaultCertificate: Boolean
+#          IamCertificateId: String
+#          MinimumProtocolVersion: String
+#          SslSupportMethod: String
