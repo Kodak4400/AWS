@@ -1,0 +1,35 @@
+## テンプレート内容 ##
+# VPCを新規作成
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Create VPC CFn-Template"
+
+Parameters:
+  NameTagPrefix:
+    Type: String
+    Default: Test
+    Description: The Value of Name Tag
+
+Mappings:
+  VPC:
+    CIDR:
+      Value: 10.10.0.0/16
+
+Resources:
+  CFnVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !FindInMap
+        - VPC
+        - CIDR
+        - Value
+      EnableDnsSupport: true
+      Tags:
+        - Key: Key
+          Value: !Sub ${NameTagPrefix}-CFnVPC
+
+Outputs:
+  CFnVPCOutput:
+    Description: Create VPC CidrBlock
+    Value: !GetAtt CFnVPC.CidrBlock
+    Export:
+      Name: !Sub ${NameTagPrefix}-CFnVPC-CidrBlock
